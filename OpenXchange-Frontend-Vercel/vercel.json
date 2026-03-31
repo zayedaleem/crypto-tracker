@@ -28,5 +28,15 @@
   "redirects": [
     { "source": "/home", "destination": "/", "permanent": true },
     { "source": "/index.html", "destination": "/", "permanent": true }
+  ],
+  "rewrites": [
+    {
+      "source": "/auth/:path*",
+      "destination": "https://crypto-tracker-production-19c6.up.railway.app/auth/:path*"
+    },
+    {
+      "source": "/api/:path*",
+      "destination": "https://crypto-tracker-production-19c6.up.railway.app/api/:path*"
+    }
   ]
 }
