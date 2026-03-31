@@ -9,9 +9,10 @@ const logger  = require('../config/logger');
 
 const COOKIE_OPTS = {
   httpOnly: true,
-  secure:   process.env.NODE_ENV === 'production',
-  sameSite: 'strict',
-  maxAge:   8 * 3600 * 1000,  // 8 hours
+  secure: true,
+  sameSite: 'none',
+  path: '/',
+  maxAge: 8 * 3600 * 1000, // 8 hours
 };
 
 function validate(req, res, next) {
