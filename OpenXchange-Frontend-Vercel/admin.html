@@ -630,8 +630,7 @@ function exportUsers() {
     u.last_login ? new Date(u.last_login).toISOString() : '',
     u.created_at ? new Date(u.created_at).toISOString() : '',
   ]));
-  var csv = rows.map(r => r.map(v => '"'+String(v).replace(/"/g,'""')+'"').join(',')).join('
-');
+  var csv = rows.map(r => r.map(v => '"' + String(v).replace(/"/g, '""') + '"').join(',')).join('\n');
   var a   = document.createElement('a');
   a.href  = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
   a.download = 'openxchange-users-' + new Date().toISOString().slice(0,10) + '.csv';
