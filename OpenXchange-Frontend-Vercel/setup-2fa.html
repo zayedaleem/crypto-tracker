@@ -241,53 +241,139 @@ footer p{font-size:.7rem;color:var(--fg-muted);opacity:.4}
 @keyframes spin{to{transform:rotate(360deg)}}
 </style>
 <script>
-  /* ═══════════════════════════════════════════════════════════
-     DEPLOYMENT CONFIG — set this to your Railway backend URL
-     Example: window.BACKEND_URL = 'https://your-app.railway.app';
-     Leave empty ('') for same-origin / local development.
-  ═══════════════════════════════════════════════════════════ */
-  window.BACKEND_URL = 'https://crypto-tracker-production-19c6.up.railway.app';
-</script>
-<script>
+/* =========================
+   CONFIG
+========================= */
+window.BACKEND_URL = 'https://crypto-tracker-production-19c6.up.railway.app';
+
 function apiURL(path) {
   return (window.BACKEND_URL || '') + path;
 }
-<script>
-  /* ── Cross-domain token fallback ──────────────────────────────
-     Browsers block SameSite=None cookies on some configurations.
-     We store the JWT in sessionStorage as a fallback and send it
-     as an Authorization header on every request.
-  ─────────────────────────────────────────────────────────────── */
-  var TokenStore = {
-    set: function(t) { try { sessionStorage.setItem('_ox_token', t); } catch(e){} },
-    get: function()  { try { return sessionStorage.getItem('_ox_token'); } catch(e){ return null; } },
-    clear: function(){ try { sessionStorage.removeItem('_ox_token'); sessionStorage.removeItem('_ox_setup_token'); } catch(e){} },
-    setSetup: function(t) { try { sessionStorage.setItem('_ox_setup_token', t); } catch(e){} },
-    getSetup: function()  { try { return sessionStorage.getItem('_ox_setup_token'); } catch(e){ return null; } },
-  };
-  // Patch fetch to always send Authorization header if we have a stored token
-  (function() {
-    var _origFetch = window.fetch;
-    window.fetch = function(url, opts) {
-      opts = opts || {};
-      // Only inject header for requests to our backend
-      var backendUrl = window.BACKEND_URL || '';
-      var isBackend = !backendUrl || String(url).startsWith(backendUrl) || String(url).startsWith('/auth') || String(url).startsWith('/api');
-      if (isBackend) {
-        opts.headers = opts.headers || {};
-        // Detect setup flow (setup_token takes priority)
-        var setupTok = TokenStore.getSetup();
-        var mainTok  = TokenStore.get();
-        var tok = setupTok || mainTok;
-        if (tok && !opts.headers['Authorization'] && !opts.headers['authorization']) {
-          opts.headers['Authorization'] = 'Bearer ' + tok;
-          opts.headers['X-Auth-Token']  = tok;
-        }
-        opts.credentials = 'include'; // always try cookies too
+
+/* =========================
+   TOKEN STORAGE
+========================= */
+const TokenStore = {
+  setSetup: (t) => {
+    try { sessionStorage.setItem('_ox_setup_token', t); } catch(e){}
+  },
+  getSetup: () => {
+    try { return sessionStorage.getItem('_ox_setup_token'); } catch(e){ return null; }
+  },
+  clear: () => {
+    try {
+      sessionStorage.removeItem('_ox_setup_token');
+      sessionStorage.removeItem('_ox_token');
+    } catch(e){}
+  }
+};
+
+/* =========================
+   FETCH PATCH
+========================= */
+(function() {
+  const _origFetch = window.fetch;
+
+  window.fetch = async function(url, opts = {}) {
+    const backendUrl = window.BACKEND_URL || '';
+
+    const isBackend =
+      !backendUrl ||
+      String(url).startsWith(backendUrl) ||
+      String(url).startsWith('/auth') ||
+      String(url).startsWith('/api');
+
+    if (isBackend) {
+      opts.headers = opts.headers || {};
+
+      const setupToken = TokenStore.getSetup();
+
+      if (setupToken) {
+        opts.headers['Authorization'] = 'Bearer ' + setupToken;
       }
-      return _origFetch.call(this, url, opts);
-    };
-  })();
+
+      opts.credentials = 'include';
+    }
+
+    return _origFetch(url, opts);
+  };
+})();
+
+/* =========================
+   LOAD QR
+========================= */
+async function loadQRCode() {
+  try {
+    const res = await fetch(apiURL('/auth/2fa/setup'));
+
+    if (!res.ok) throw new Error();
+
+    const data = await res.json();
+
+    document.getElementById('qrImg').src = data.qr;
+
+  } catch (e) {
+    showError('Failed to load QR code.');
+  }
+}
+
+/* =========================
+   VERIFY
+========================= */
+async function verify2FA() {
+  const code = document.getElementById('code').value.trim();
+
+  if (!code) {
+    showError('Enter 6-digit code');
+    return;
+  }
+
+  try {
+    const res = await fetch(apiURL('/auth/2fa/verify'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: code })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) throw new Error();
+
+    TokenStore.clear();
+    window.location.href = '/dashboard.html';
+
+  } catch (e) {
+    showError('Invalid code');
+  }
+}
+
+/* =========================
+   UI
+========================= */
+function showError(msg) {
+  const el = document.getElementById('errorMsg');
+  if (!el) return;
+
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+/* =========================
+   INIT
+========================= */
+document.addEventListener('DOMContentLoaded', () => {
+  const setupToken = sessionStorage.getItem('_ox_setup_token');
+
+  if (!setupToken) {
+    showError('Session expired. Please login again.');
+    return;
+  }
+
+  loadQRCode();
+
+  document.getElementById('verifyBtn')
+    ?.addEventListener('click', verify2FA);
+});
 </script>
 </head>
 <body>
