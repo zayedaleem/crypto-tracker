@@ -527,9 +527,7 @@ async function reactivate(id, username) {
 }
 
 async function purgeUser(id, username) {
-  var confirm1 = confirm('PERMANENTLY DELETE ' + username + '?
-
-This removes the account and all associated data. This cannot be undone.');
+var confirm1 = confirm('PERMANENTLY DELETE ' + username + '?\n\nThis removes the account and all associated data. This cannot be undone.');
   if (!confirm1) return;
   var typed = prompt('Type the username "' + username + '" to confirm permanent deletion:');
   if (typed !== username) { alert('Username did not match. Deletion cancelled.'); return; }
