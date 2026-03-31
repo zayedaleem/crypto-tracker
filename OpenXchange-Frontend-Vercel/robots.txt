@@ -1,8 +1,0 @@
-User-agent: *
-Allow: /
-
-# Block client portal from indexing
-Disallow: /login.html
-
-# Sitemap location
-Sitemap: https://openxchange.io/sitemap.xml
